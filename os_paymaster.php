@@ -150,7 +150,7 @@ class os_paymaster extends os_payment
 
         $transactionId = $Itemid . '_' . $row->event_id . '_' . $row->id;
 
-        $this->setPostParam('MNT_ID', $this->_params['account_id']);
+        $this->setPostParam('LMI_MERCHANT_ID', $this->_params['paymaster_merchant_id']);
         $this->setPostParam('MNT_AMOUNT', $amount);
         $this->setPostParam('MNT_CURRENCY_CODE', $this->_params['currency_code']);
         $this->setPostParam('MNT_DESCRIPTION', $description);
@@ -224,6 +224,22 @@ foreach ($this->_post_params as $key => $val) {
         $fp = fopen($this->pm_log_file, 'a');
         fwrite($fp, $text . "\n\n");
         fclose($fp); // close file
+    }
+
+    public function makeHash($data = array(), $secret = '', $hash_alg = 'md5') {
+
+    }
+
+    /**
+     * Возвращаем подпись продавца SIGN
+     * @param array $data
+     * @param string $secret
+     * @param string $hash_alg
+     * @return string
+     */
+    public function makeSign($data = array(), $secret = '', $hash_alg = 'md5') {
+        $plain_sign = $data['merchant_id'] . $data['order_id'] . $data['amount'] . $data['lmi_currency'] . $secret;
+        return base64_encode(hash($hash_alg, $plain_sign, true));
     }
 
     /**
