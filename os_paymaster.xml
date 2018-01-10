@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<install version="1.0" type="plugin" group="payment">
+	<name>os_paymaster</name>
+	<title>paymaster</title>
+	<author>Alex Agafonov</author>
+	<creationDate>26-12-2017</creationDate>
+	<copyright>Copyright 2017 PayMaster</copyright>
+	<license>http://www.gnu.org/licenses/old-licenses/gpl-2.0.html GNU/GPL version 2</license>
+	<authorEmail>dev@agaxx.ru</authorEmail>
+	<authorUrl>www.paymaster.ru</authorUrl>
+	<version>1.0</version>
+	<description>PayMaster Payment Plugin For Events Booking Extension</description>
+	<config>	
+		<fields name="params">
+			<fieldset name="basic" addfieldpath="/administrator/components/com_eventbooking/elements">
+				<field name="paymaster_mode" type="list" label="PayMaster Mode" description="Set to Demo Mode Or Live Mode">
+					<option value="0">Live Mode</option>
+					<option value="1">Demo Mode</option>
+				</field>
+  
+				<field name="paymaster_merchant_id" type="text" size="40" label="PayMaster Merchant ID" description="See ID in you interface in site https://paymaster.ru/partners/" default=""></field>
+				<field name="paymaster_secret" type="text" size="40" label="PayMaster secret" description="Setup you secret phrase" default=""></field>
+				<field name="paymaster_currency" type="ebcurrency" label="Currency" description="Choose Currency" default=RUB""></field>
+				<field name="paymaster_hash_alg" type="list" label="Hash algorithm" description="Select PayMaster hash algorithm for sign encryption. You must set up it same also in PayMaster merchant interface" default="md5">
+                    <option value="md5">md5</option>
+                    <option value="sha1">sha1</option>
+                    <option value="sha256">sha256</option>
+                </field>
+                <field name="paymaster_vat_rate" type="list" label="VAT rate" description="Select VAT rate for online-checkout" default="no_vat">
+                    <option value="no_vat">no vat</option>
+                    <option value="vat0">vat 0%</option>
+                    <option value="vat10">vat 10%</option>
+                    <option value="vat18">vat 18%</option>
+                    <option value="vat110">vat formula 10/110%</option>
+                    <option value="vat118">vat formula 18/118%</option>
+                </field>
+                <field name="paymaster_log" type="list" label="Log file" description="Log information about transaction in file" default="0">
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </field>
+			</fieldset>			
+		</fields>
+	</config>
+	<files>
+		<filename>os_paymaster.php</filename>
+	</files>
+	<languages />
+	<installsql />
+	<installfile />	
+</install>

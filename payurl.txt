@@ -1,0 +1,1 @@
+http://вашсайт/index.php?option=com_eventbooking&task=payment_confirm&payment_method=os_paymaster
