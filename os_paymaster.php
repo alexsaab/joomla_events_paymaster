@@ -151,21 +151,30 @@ class os_paymaster extends os_payment
         $transactionId = $Itemid . '_' . $row->event_id . '_' . $row->id;
 
         $this->setPostParam('LMI_MERCHANT_ID', $this->_params['paymaster_merchant_id']);
-        $this->setPostParam('MNT_AMOUNT', $amount);
-        $this->setPostParam('MNT_CURRENCY_CODE', $this->_params['currency_code']);
-        $this->setPostParam('MNT_DESCRIPTION', $description);
-        $this->setPostParam('MNT_TRANSACTION_ID', $transactionId);
+        $this->setPostParam('LMI_PAYMENT_AMOUNT', $amount);
+        $this->setPostParam('LMI_CURRENCY', $this->_params['currency_code']);
+        $this->setPostParam('LMI_PAYMENT_DESC', $description);
+        $this->setPostParam('LMI_PAYMENT_NO', $transactionId);
+
+        // Формируем подпись
+        $data = array(
+            'LMI_MERCHANT_ID' => $this->_params['paymaster_merchant_id'],
+            'LMI_PAYMENT_NO' => $transactionId,
+            'LMI_PAYMENT_AMOUNT' => $amount,
+            'LMI_CURRENCY' => $this->_params['currency_code'],
+        );
+
+        $sign = $this->makeSign($data, $this->_params['paymaster_secret'], $this->_params['paymaster_hash_alg']);
+
+        $this->setPostParam('SIGN', $sign);
 
         $test_mode = $this->_params['paymaster_test'];
         if (!$test_mode) {
             $test_mode = '0';
         }
 
-        $signature = md5($this->_params['account_id'] . $transactionId . $amount . $this->_params['currency_code'] . $test_mode . $this->_params['account_code']);
-        $this->setPostParam('MNT_SIGNATURE', $signature);
-
-        $this->setPostParam('MNT_SUCCESS_URL', $siteUrl . 'index.php?option=com_eventbooking&view=complete&Itemid=' . $Itemid);
-        $this->setPostParam('MNT_FAIL_URL', $siteUrl . 'index.php?option=com_eventbooking&task=cancel&id=' . $row->id . '&Itemid=' . $Itemid);
+//        $this->setPostParam('MNT_SUCCESS_URL', $siteUrl . 'index.php?option=com_eventbooking&view=complete&Itemid=' . $Itemid);
+//        $this->setPostParam('MNT_FAIL_URL', $siteUrl . 'index.php?option=com_eventbooking&task=cancel&id=' . $row->id . '&Itemid=' . $Itemid);
 
         // Pay URL:
         // $siteUrl . 'index.php?option=com_eventbooking&task=payment_confirm&payment_method=os_paymaster'
@@ -226,20 +235,28 @@ foreach ($this->_post_params as $key => $val) {
         fclose($fp); // close file
     }
 
-    public function makeHash($data = array(), $secret = '', $hash_alg = 'md5') {
-
+    /**
+     * Базовый алгоритм формирования подписи (с проверкой)
+     * @param array $data
+     * @param string $secret
+     * @param string $hash_method
+     * @return string
+     */
+    public function makeHash($data = array(), $secret = '', $hash_method = 'md5') {
+        $string = $data['LMI_MERCHANT_ID'] . ";" . $data['LMI_PAYMENT_NO'] . ";" . $data['LMI_SYS_PAYMENT_ID'] . ";" . $data['LMI_SYS_PAYMENT_DATE'] . ";" . $data['LMI_PAYMENT_AMOUNT'] . ";" . $data['LMI_CURRENCY'] . ";" . $data['LMI_PAID_AMOUNT'] . ";" . $data['LMI_PAID_CURRENCY'] . ";" . $data['LMI_PAYMENT_SYSTEM'] . ";" . $data['LMI_SIM_MODE'] . ";" . $secret;
+        return base64_encode(hash($hash_method, $string, true));
     }
 
     /**
      * Возвращаем подпись продавца SIGN
      * @param array $data
      * @param string $secret
-     * @param string $hash_alg
+     * @param string $hash_method
      * @return string
      */
-    public function makeSign($data = array(), $secret = '', $hash_alg = 'md5') {
-        $plain_sign = $data['merchant_id'] . $data['order_id'] . $data['amount'] . $data['lmi_currency'] . $secret;
-        return base64_encode(hash($hash_alg, $plain_sign, true));
+    public function makeSign($data = array(), $secret = '', $hash_method = 'md5') {
+        $plain_sign = $data['LMI_MERCHANT_ID'] . $data['LMI_PAYMENT_NO'] . $data['LMI_PAYMENT_AMOUNT'] . $data['LMI_CURRENCY'] . $secret;
+        return base64_encode(hash($hash_method, $plain_sign, true));
     }
 
     /**
