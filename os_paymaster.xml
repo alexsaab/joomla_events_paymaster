@@ -10,17 +10,17 @@
 	<authorUrl>www.paymaster.ru</authorUrl>
 	<version>1.0</version>
 	<description>PayMaster Payment Plugin For Events Booking Extension</description>
-	<config>	
+	<config>
 		<fields name="params">
 			<fieldset name="basic" addfieldpath="/administrator/components/com_eventbooking/elements">
 				<field name="paymaster_mode" type="list" label="PayMaster Mode" description="Set to Demo Mode Or Live Mode">
 					<option value="0">Live Mode</option>
 					<option value="1">Demo Mode</option>
 				</field>
-  
+
 				<field name="paymaster_merchant_id" type="text" size="40" label="PayMaster Merchant ID" description="See ID in you interface in site https://paymaster.ru/partners/" default=""></field>
 				<field name="paymaster_secret" type="text" size="40" label="PayMaster secret" description="Setup you secret phrase" default=""></field>
-				<field name="paymaster_currency" type="ebcurrency" label="Currency" description="Choose Currency" default=RUB""></field>
+				<field name="paymaster_currency" type="ebcurrency" label="Currency" description="Choose Currency" default="RUB"></field>
 				<field name="paymaster_hash_alg" type="list" label="Hash algorithm" description="Select PayMaster hash algorithm for sign encryption. You must set up it same also in PayMaster merchant interface" default="md5">
                     <option value="md5">md5</option>
                     <option value="sha1">sha1</option>
@@ -38,7 +38,7 @@
                     <option value="0">No</option>
                     <option value="1">Yes</option>
                 </field>
-			</fieldset>			
+			</fieldset>
 		</fields>
 	</config>
 	<files>
@@ -46,5 +46,5 @@
 	</files>
 	<languages />
 	<installsql />
-	<installfile />	
+	<installfile />
 </install>
