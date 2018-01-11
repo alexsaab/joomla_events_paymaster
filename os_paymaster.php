@@ -70,13 +70,13 @@ class os_paymaster extends os_payment
         }         
 
         // paymaster specific params
-        $this->setParam('LMI_MERCHANT_ID', $params->get('paymaster_merchant_id'));
+        $this->setParam('paymaster_merchant_id', $params->get('paymaster_merchant_id'));
         $this->setParam('paymaster_secret', $params->get('paymaster_secret'));
         $currency = $params->get('paymaster_currency', 'RUB');
         if ($currency == 'RUR') {
             $currency = 'RUB';
         }
-        $this->setParam('LMI_CURRENCY', $currency);
+        $this->setParam('paymaster_currency', $currency);
         $this->setParam('paymaster_hash_alg', $params->get('paymaster_hash_alg', 'md5'));
         $this->setParam('paymaster_vat_rate', $params->get('paymaster_vat_rate', 'no_vat'));
 
@@ -106,7 +106,7 @@ class os_paymaster extends os_payment
 
         $this->setPostParam('LMI_MERCHANT_ID', $this->_params['paymaster_merchant_id']);
         $this->setPostParam('LMI_PAYMENT_AMOUNT', $amount);
-        $this->setPostParam('LMI_CURRENCY', $this->_params['currency_code']);
+        $this->setPostParam('LMI_CURRENCY', $this->_params['paymaster_currency']);
         $this->setPostParam('LMI_PAYMENT_DESC', $description);
         $this->setPostParam('LMI_PAYMENT_NO', $transactionId);
 
@@ -115,7 +115,7 @@ class os_paymaster extends os_payment
             'LMI_MERCHANT_ID' => $this->_params['paymaster_merchant_id'],
             'LMI_PAYMENT_NO' => $transactionId,
             'LMI_PAYMENT_AMOUNT' => $amount,
-            'LMI_CURRENCY' => $this->_params['currency_code'],
+            'LMI_CURRENCY' => $this->_params['paymaster_currency'],
         );
 
         $sign = $this->makeSign($dataSet, $this->_params['paymaster_secret'], $this->_params['paymaster_hash_alg']);
