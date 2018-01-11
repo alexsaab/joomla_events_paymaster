@@ -21,7 +21,7 @@
 				<field name="paymaster_merchant_id" type="text" size="40" label="PayMaster Merchant ID" description="See ID in you interface in site https://paymaster.ru/partners/" default=""></field>
 				<field name="paymaster_secret" type="text" size="40" label="PayMaster secret" description="Setup you secret phrase" default=""></field>
 				<field name="paymaster_currency" type="ebcurrency" label="Currency" description="Choose Currency" default="RUB"></field>
-				<field name="paymaster_hash_alg" type="list" label="Hash algorithm" description="Select PayMaster hash algorithm for sign encryption. You must set up it same also in PayMaster merchant interface" default="md5">
+				<field name="paymaster_hash_alg" type="list" label="Hash algorithm" description="Select PayMaster hash algorithm for sign encryption. You must set up it same also in PayMaster merchant interface" default="sha256">
                     <option value="md5">md5</option>
                     <option value="sha1">sha1</option>
                     <option value="sha256">sha256</option>

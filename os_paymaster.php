@@ -86,52 +86,6 @@ class os_paymaster extends os_payment
     }
 
     /**
-     * Set param value
-     *
-     * @param string $name
-     * @param string $val
-     */
-    public function setParam($name, $val)
-    {
-        $this->_params[$name] = $val;
-    }
-
-    /**
-     * Setup payment parameter
-     *
-     * @param array $params
-     */
-    public function setParams($params)
-    {
-        foreach ($params as $key => $value) {
-            $this->_params[$key] = $value;
-        }
-    }
-
-    /**
-     * Set Post param value
-     *
-     * @param string $name
-     * @param string $val
-     */
-    public function setPostParam($name, $val)
-    {
-        $this->_post_params[$name] = $val;
-    }
-
-    /**
-     * Setup Post payment parameter
-     *
-     * @param array $params
-     */
-    public function setPostParams($params)
-    {
-        foreach ($params as $key => $value) {
-            $this->_post_params[$key] = $value;
-        }
-    }
-
-    /**
      * Process Payment
      *
      * @param object $row
@@ -157,14 +111,22 @@ class os_paymaster extends os_payment
         $this->setPostParam('LMI_PAYMENT_NO', $transactionId);
 
         // Формируем подпись
-        $data = array(
+        $dataSet = array(
             'LMI_MERCHANT_ID' => $this->_params['paymaster_merchant_id'],
             'LMI_PAYMENT_NO' => $transactionId,
             'LMI_PAYMENT_AMOUNT' => $amount,
             'LMI_CURRENCY' => $this->_params['currency_code'],
         );
 
-        $sign = $this->makeSign($data, $this->_params['paymaster_secret'], $this->_params['paymaster_hash_alg']);
+        $sign = $this->makeSign($dataSet, $this->_params['paymaster_secret'], $this->_params['paymaster_hash_alg']);
+
+        // Для подключения к онлайн кассе делаем
+        // Так как товар один - регистрация на меропрятие ограничиваемся только первым [0] значением массива
+
+        $this->setPostParam('LMI_SHOPPINGCART.ITEMS[0].NAME', $description);
+        $this->setPostParam('LMI_SHOPPINGCART.ITEMS[0].QTY', 1);
+        $this->setPostParam('LMI_SHOPPINGCART.ITEMS[0].PRICE', $amount);
+        $this->setPostParam('LMI_SHOPPINGCART.ITEMS[0].TAX', $this->_params['paymaster_vat_rate']);
 
         $this->setPostParam('SIGN', $sign);
 
@@ -173,8 +135,15 @@ class os_paymaster extends os_payment
             $test_mode = '0';
         }
 
-//        $this->setPostParam('MNT_SUCCESS_URL', $siteUrl . 'index.php?option=com_eventbooking&view=complete&Itemid=' . $Itemid);
-//        $this->setPostParam('MNT_FAIL_URL', $siteUrl . 'index.php?option=com_eventbooking&task=cancel&id=' . $row->id . '&Itemid=' . $Itemid);
+
+        $this->setPostParam('LMI_PAYMENT_NOTIFICATION_URL', $siteUrl . 'index.php?option=com_eventbooking&task=payment_confirm&payment_method=os_paymaster&Itemid=' . $Itemid);
+
+        //TODO
+        //Возможно будет правильнее
+        // $this->setPostParam('LMI_PAYMENT_NOTIFICATION_URL', $siteUrl . 'index.php?option=com_eventbooking&task=payment_confirm&payment_method=os_paymaster');
+
+        $this->setPostParam('LMI_SUCCESS_URL', $siteUrl . 'index.php?option=com_eventbooking&view=complete&Itemid=' . $Itemid);
+        $this->setPostParam('LMI_FAILURE_URL', $siteUrl . 'index.php?option=com_eventbooking&task=cancel&id=' . $row->id . '&Itemid=' . $Itemid);
 
         // Pay URL:
         // $siteUrl . 'index.php?option=com_eventbooking&task=payment_confirm&payment_method=os_paymaster'
@@ -197,6 +166,7 @@ foreach ($this->_post_params as $key => $val) {
             echo '<input type="hidden" name="' . $key . '" value="' . $val . '" />';
             echo "\n";
         }
+
         ?>
 			<script type="text/javascript">
 				function redirect()
@@ -235,45 +205,9 @@ foreach ($this->_post_params as $key => $val) {
         fclose($fp); // close file
     }
 
-    /**
-     * Базовый алгоритм формирования подписи (с проверкой)
-     * @param array $data
-     * @param string $secret
-     * @param string $hash_method
-     * @return string
-     */
-    public function makeHash($data = array(), $secret = '', $hash_method = 'md5') {
-        $string = $data['LMI_MERCHANT_ID'] . ";" . $data['LMI_PAYMENT_NO'] . ";" . $data['LMI_SYS_PAYMENT_ID'] . ";" . $data['LMI_SYS_PAYMENT_DATE'] . ";" . $data['LMI_PAYMENT_AMOUNT'] . ";" . $data['LMI_CURRENCY'] . ";" . $data['LMI_PAID_AMOUNT'] . ";" . $data['LMI_PAID_CURRENCY'] . ";" . $data['LMI_PAYMENT_SYSTEM'] . ";" . $data['LMI_SIM_MODE'] . ";" . $secret;
-        return base64_encode(hash($hash_method, $string, true));
-    }
 
-    /**
-     * Возвращаем подпись продавца SIGN
-     * @param array $data
-     * @param string $secret
-     * @param string $hash_method
-     * @return string
-     */
-    public function makeSign($data = array(), $secret = '', $hash_method = 'md5') {
-        $plain_sign = $data['LMI_MERCHANT_ID'] . $data['LMI_PAYMENT_NO'] . $data['LMI_PAYMENT_AMOUNT'] . $data['LMI_CURRENCY'] . $secret;
-        return base64_encode(hash($hash_method, $plain_sign, true));
-    }
 
-    /**
-     * Функция возвращает значения параметра либо из POST либо из GET запроса
-     * @param  [type] $name [description]
-     * @return [type]       [description]
-     */
-    public function getRequestVar($name)
-    {
-        $value = null;
-        if (isset($_POST[$name])) {
-            $value = $_POST[$name];
-        } else if (isset($_GET[$name])) {
-            $value = $_GET[$name];
-        }
-        return $value;
-    }
+
 
     /**
      * Process payment
@@ -282,6 +216,7 @@ foreach ($this->_post_params as $key => $val) {
     public function verifyPayment()
     {
 
+        // В принципе это можно убрать, так как это обработчик ошибок
         $errorHandlerFileName = date("Ymd") . ".txt";
         $errorHandlerMessage  = "POST: " . print_r($_POST, true) . " GET: " . print_r($_GET, true);
 
@@ -296,25 +231,56 @@ foreach ($this->_post_params as $key => $val) {
         $config = EventbookingHelper::getConfig();
 
         // Request params
-        $MNT_ID             = $this->getRequestVar('MNT_ID');
-        $MNT_TRANSACTION_ID = $this->getRequestVar('MNT_TRANSACTION_ID');
-        $MNT_OPERATION_ID   = $this->getRequestVar('MNT_OPERATION_ID');
-        $MNT_AMOUNT         = $this->getRequestVar('MNT_AMOUNT');
-        $MNT_CURRENCY_CODE  = $this->getRequestVar('MNT_CURRENCY_CODE');
-        $MNT_SUBSCRIBER_ID  = $this->getRequestVar('MNT_SUBSCRIBER_ID');
-        $MNT_TEST_MODE      = $this->getRequestVar('MNT_TEST_MODE');
-        if (!$MNT_TEST_MODE) {
-            $MNT_TEST_MODE = '0';
-        }
+        $LMI_MERCHANT_ID = $this->getRequestVar('LMI_MERCHANT_ID');
+        $LMI_PAYMENT_NO = $this->getRequestVar('LMI_PAYMENT_NO');
+        $LMI_PAYMENT_AMOUNT = $this->getRequestVar('LMI_PAYMENT_AMOUNT');
+        $LMI_SYS_PAYMENT_ID = $this->getRequestVar('LMI_SYS_PAYMENT_ID');
+        $LMI_SYS_PAYMENT_DATE = $this->getRequestVar('LMI_SYS_PAYMENT_DATE');
+        $LMI_CURRENCY = $this->getRequestVar('LMI_CURRENCY');
+        $LMI_PAID_AMOUNT = $this->getRequestVar('LMI_PAID_AMOUNT');
+        $LMI_PAID_CURRENCY = $this->getRequestVar('LMI_PAID_CURRENCY');
+        $LMI_PAYMENT_METHOD = $this->getRequestVar('LMI_PAYMENT_METHOD');
+        $LMI_SIM_MODE = $this->getRequestVar('LMI_SIM_MODE');
+        $LMI_PAYMENT_DESC = $this->getRequestVar('LMI_PAYMENT_DESC');
+        $LMI_HASH = $this->getRequestVar('LMI_HASH');
+        $LMI_PAYER_COUNTRY = $this->getRequestVar('LMI_PAYER_COUNTRY');
+        $LMI_PAYER_PASSPORT_COUNTRY = $this->getRequestVar('LMI_PAYER_PASSPORT_COUNTRY');
+        $LMI_PAYER_IP_ADDRESS = $this->getRequestVar('LMI_PAYER_IP_ADDRESS');
+        $SIGN = $this->getRequestVar('SIGN');
 
-        $MNT_SIGNATURE = $this->getRequestVar('MNT_SIGNATURE');
-        // check signature
-        $signature = md5($MNT_ID . $MNT_TRANSACTION_ID . $MNT_OPERATION_ID . $MNT_AMOUNT . $MNT_CURRENCY_CODE . $MNT_SUBSCRIBER_ID . $MNT_TEST_MODE . $this->_params['account_code']);
-        if ($MNT_SIGNATURE != $signature) {
+
+
+        // Думаю, что это пока сейчас не нужно.
+//        if (!$MNT_TEST_MODE) {
+//            $MNT_TEST_MODE = '0';
+//        }
+
+
+
+        // check signatures
+
+        $dataSet = array(
+                'LMI_MERCHANT_ID' => $LMI_MERCHANT_ID,
+                'LMI_PAYMENT_NO' => $LMI_PAYMENT_NO,
+                'LMI_SYS_PAYMENT_ID' => $LMI_SYS_PAYMENT_ID,
+                'LMI_SYS_PAYMENT_DATE' => $LMI_SYS_PAYMENT_DATE,
+                'LMI_PAYMENT_AMOUNT' => $LMI_PAYMENT_AMOUNT,
+                'LMI_CURRENCY' => $LMI_CURRENCY,
+                'LMI_PAID_AMOUNT' => $LMI_PAID_AMOUNT,
+                'LMI_PAID_CURRENCY' => $LMI_PAID_CURRENCY,
+                'LMI_PAYMENT_METHOD' => $LMI_PAYMENT_METHOD,
+                'LMI_SIM_MODE' => $LMI_SIM_MODE
+        );
+
+        $hash = $this->makeHash($dataSet, $this->_params['paymaster_secret'], $this->_params['paymaster_hash_alg']);
+        $sign = $this->makeSign($dataSet, $this->_params['paymaster_secret'], $this->_params['paymaster_hash_alg']);
+
+        if (($sign != $SIGN) || ($hash != $LMI_HASH)) {
             echo "FAIL";exit;
         }
 
-        $id = $MNT_TRANSACTION_ID;
+        $id = $LMI_PAYMENT_NO;
+
         if (strpos($id, '_') !== false) {
             $transactionIdArray = explode('_', $id);
             if (isset($transactionIdArray[2])) {
@@ -345,5 +311,92 @@ foreach ($this->_post_params as $key => $val) {
         $dispatcher->trigger('onAfterPaymentSuccess', array($row));
 
         echo "SUCCESS";exit;
+    }
+
+
+    /**
+     * Базовый алгоритм формирования подписи (с проверкой)
+     * @param array $data
+     * @param string $secret
+     * @param string $hash_method
+     * @return string
+     */
+    public function makeHash($data = array(), $secret = '', $hash_method = 'sha256') {
+        $string = $data['LMI_MERCHANT_ID'] . ";" . $data['LMI_PAYMENT_NO'] . ";" . $data['LMI_SYS_PAYMENT_ID'] . ";" . $data['LMI_SYS_PAYMENT_DATE'] . ";" . $data['LMI_PAYMENT_AMOUNT'] . ";" . $data['LMI_CURRENCY'] . ";" . $data['LMI_PAID_AMOUNT'] . ";" . $data['LMI_PAID_CURRENCY'] . ";" . $data['LMI_PAYMENT_SYSTEM'] . ";" . $data['LMI_SIM_MODE'] . ";" . $secret;
+        return base64_encode(hash($hash_method, $string, true));
+    }
+
+    /**
+     * Возвращаем подпись продавца SIGN
+     * @param array $data
+     * @param string $secret
+     * @param string $hash_method
+     * @return string
+     */
+    public function makeSign($data = array(), $secret = '', $hash_method = 'sha256') {
+        $plain_sign = $data['LMI_MERCHANT_ID'] . $data['LMI_PAYMENT_NO'] . $data['LMI_PAYMENT_AMOUNT'] . $data['LMI_CURRENCY'] . $secret;
+        return base64_encode(hash($hash_method, $plain_sign, true));
+    }
+
+    /**
+     * Сеттер одного параметра
+     *
+     * @param string $name
+     * @param string $val
+     */
+    public function setParam($name, $val)
+    {
+        $this->_params[$name] = $val;
+    }
+
+    /**
+     * Сеттер параметров (когда их много)
+     *
+     * @param array $params
+     */
+    public function setParams($params)
+    {
+        foreach ($params as $key => $value) {
+            $this->_params[$key] = $value;
+        }
+    }
+
+    /**
+     * Сеттер пост-параметра (один)
+     *
+     * @param string $name
+     * @param string $val
+     */
+    public function setPostParam($name, $val)
+    {
+        $this->_post_params[$name] = $val;
+    }
+
+    /**
+     * Сеттер пост-параметров (много)
+     *
+     * @param array $params
+     */
+    public function setPostParams($params)
+    {
+        foreach ($params as $key => $value) {
+            $this->_post_params[$key] = $value;
+        }
+    }
+
+    /**
+     * Функция возвращает значения параметра либо из POST либо из GET запроса
+     * @param  [type] $name [description]
+     * @return [type]       [description]
+     */
+    public function getRequestVar($name)
+    {
+        $value = null;
+        if (isset($_POST[$name])) {
+            $value = $_POST[$name];
+        } else if (isset($_GET[$name])) {
+            $value = $_GET[$name];
+        }
+        return $value;
     }
 }
