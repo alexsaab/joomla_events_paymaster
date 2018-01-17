@@ -1,11 +1,11 @@
 <?php
 /**
- * @version            1.0.0
- * @package            Joomla
- * @subpackage        Event Booking
+ * @version         1.0.0
+ * @package         Joomla
+ * @subpackage      Event Booking
  * @author          Alex Agafonov
- * @copyright        Copyright (C) 2017 PayMaster
- * @license            GNU/GPL, see LICENSE.php
+ * @copyright       Copyright (C) 2017 PayMaster
+ * @license         GNU/GPL, see LICENSE.php
  */
 // no direct access
 defined('_JEXEC') or die();
@@ -18,7 +18,7 @@ class os_paymaster extends os_payment
      *
      * @var boolean live mode : true, test mode : false
      */
-    public $_mode = 0;
+    public $_mode = true;
 
     /**
      * paymaster url
@@ -82,7 +82,8 @@ class os_paymaster extends os_payment
 
         // logging
         $this->pm_log      = $params->get('pm_log', 0);
-        $this->pm_log_file = JPATH_COMPONENT . '/pm_logs.txt';
+//        $this->pm_log_file = JPATH_COMPONENT . '/pm_logs.txt';
+        $this->pm_log_file = __DIR__. '/pm_logs.txt';
     }
 
     /**
@@ -136,17 +137,18 @@ class os_paymaster extends os_payment
         }
 
 
-        $this->setPostParam('LMI_PAYMENT_NOTIFICATION_URL', $siteUrl . 'index.php?option=com_eventbooking&task=payment_confirm&payment_method=os_paymaster&Itemid=' . $Itemid);
+//        $this->setPostParam('LMI_PAYMENT_NOTIFICATION_URL', $siteUrl . 'index.php?option=com_eventbooking&task=payment_confirm&payment_method=os_paymaster&Itemid=' . $Itemid);
 
         //TODO
         //Возможно будет правильнее
-        // $this->setPostParam('LMI_PAYMENT_NOTIFICATION_URL', $siteUrl . 'index.php?option=com_eventbooking&task=payment_confirm&payment_method=os_paymaster');
+         $this->setPostParam('LMI_PAYMENT_NOTIFICATION_URL', $siteUrl . 'index.php?option=com_eventbooking&task=payment_confirm&payment_method=os_paymaster');
 
         $this->setPostParam('LMI_SUCCESS_URL', $siteUrl . 'index.php?option=com_eventbooking&view=complete&Itemid=' . $Itemid);
         $this->setPostParam('LMI_FAILURE_URL', $siteUrl . 'index.php?option=com_eventbooking&task=cancel&id=' . $row->id . '&Itemid=' . $Itemid);
 
         // Pay URL:
         // $siteUrl . 'index.php?option=com_eventbooking&task=payment_confirm&payment_method=os_paymaster'
+
 
         $this->submitPost();
     }
@@ -179,31 +181,7 @@ foreach ($this->_post_params as $key => $val) {
 	<?php
 }
 
-    /**
-     * Log result
-     *
-     * @param string $success
-     */
-    public function log_pm_results($success)
-    {
-        if (!$this->pm_log) {
-            return;
-        }
-        $text = '[' . date('m/d/Y g:i A') . '] - ';
-        if ($success) {
-            $text .= "SUCCESS!\n";
-        } else {
-            $text .= 'FAIL: ' . $this->last_error . "\n";
-        }
-        $text .= "POST Vars from PayMaster:\n";
-        foreach ($this->_data as $key => $value) {
-            $text .= "$key=$value, ";
-        }
-        $text .= "\nResponse from PayMaster Server:\n " . $this->pm_response;
-        $fp = fopen($this->pm_log_file, 'a');
-        fwrite($fp, $text . "\n\n");
-        fclose($fp); // close file
-    }
+
 
 
 
@@ -239,15 +217,13 @@ foreach ($this->_post_params as $key => $val) {
         $LMI_CURRENCY = $this->getRequestVar('LMI_CURRENCY');
         $LMI_PAID_AMOUNT = $this->getRequestVar('LMI_PAID_AMOUNT');
         $LMI_PAID_CURRENCY = $this->getRequestVar('LMI_PAID_CURRENCY');
-        $LMI_PAYMENT_METHOD = $this->getRequestVar('LMI_PAYMENT_METHOD');
+        $LMI_PAYMENT_SYSTEM = $this->getRequestVar('LMI_PAYMENT_SYSTEM');
         $LMI_SIM_MODE = $this->getRequestVar('LMI_SIM_MODE');
-        $LMI_PAYMENT_DESC = $this->getRequestVar('LMI_PAYMENT_DESC');
         $LMI_HASH = $this->getRequestVar('LMI_HASH');
-        $LMI_PAYER_COUNTRY = $this->getRequestVar('LMI_PAYER_COUNTRY');
-        $LMI_PAYER_PASSPORT_COUNTRY = $this->getRequestVar('LMI_PAYER_PASSPORT_COUNTRY');
-        $LMI_PAYER_IP_ADDRESS = $this->getRequestVar('LMI_PAYER_IP_ADDRESS');
+('LMI_PAYER_PASSPORT_COUNTRY');
         $SIGN = $this->getRequestVar('SIGN');
 
+        $this->log($_POST);
 
 
         // Думаю, что это пока сейчас не нужно.
@@ -268,12 +244,22 @@ foreach ($this->_post_params as $key => $val) {
                 'LMI_CURRENCY' => $LMI_CURRENCY,
                 'LMI_PAID_AMOUNT' => $LMI_PAID_AMOUNT,
                 'LMI_PAID_CURRENCY' => $LMI_PAID_CURRENCY,
-                'LMI_PAYMENT_METHOD' => $LMI_PAYMENT_METHOD,
+                'LMI_PAYMENT_SYSTEM' => $LMI_PAYMENT_SYSTEM,
                 'LMI_SIM_MODE' => $LMI_SIM_MODE
         );
 
+
+
+
         $hash = $this->makeHash($dataSet, $this->_params['paymaster_secret'], $this->_params['paymaster_hash_alg']);
         $sign = $this->makeSign($dataSet, $this->_params['paymaster_secret'], $this->_params['paymaster_hash_alg']);
+
+        $this->log("SIGN = ".$sign);
+        $this->log("HASH = ".$hash);
+        $this->log($this->_params['paymaster_secret']);
+        $this->log($this->_params['paymaster_hash_alg']);
+
+
 
         if (($sign != $SIGN) || ($hash != $LMI_HASH)) {
             echo "FAIL";exit;
@@ -290,6 +276,8 @@ foreach ($this->_post_params as $key => $val) {
 
         $row = JTable::getInstance('EventBooking', 'Registrant');
         $row->load($id);
+
+
         if (!$row->id) {
             echo "FAIL";exit;
         }
@@ -302,6 +290,8 @@ foreach ($this->_post_params as $key => $val) {
         $row->published    = true;
         $row->checked_in   = 1;
         $row->store();
+
+
         if ($row->is_group_billing) {
             EventbookingHelper::updateGroupRegistrationRecord($row->id);
         }
@@ -398,5 +388,42 @@ foreach ($this->_post_params as $key => $val) {
             $value = $_GET[$name];
         }
         return $value;
+    }
+
+    /**
+     * Временное логирование
+     * @param $data
+     */
+    public function log($data) {
+        file_put_contents(__DIR__.'/pm_logs.txt', is_array($data) ? var_export($data, true)."\n\n" : $data."\n\n", FILE_APPEND | LOCK_EX);
+    }
+
+    /**
+     * Log result
+     *
+     * @param string $success
+     */
+    public function log_pm_results($success)
+    {
+        if (!$this->pm_log) {
+            return;
+        }
+        $text = '[' . date('m/d/Y g:i A') . '] - ';
+        if ($success) {
+            if (is_array($success)) {
+                $success = var_export($success, true);
+            }
+            $text .= "SUCCESS!\nSuccess variable is {$success} .\n\n";
+        } else {
+            $text .= 'FAIL: ' . $this->last_error . "\n";
+        }
+        $text .= "POST Vars from PayMaster:\n";
+        foreach ($this->_data as $key => $value) {
+            $text .= "$key=$value, ";
+        }
+        $text .= "\nResponse from PayMaster Server:\n " . $this->pm_response;
+        $fp = fopen($this->pm_log_file, 'a');
+        fwrite($fp, $text . "\n\n");
+        fclose($fp); // close file
     }
 }
